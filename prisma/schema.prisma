@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id              Int          @id @default(autoincrement())
+  name            String
+  email           String
+  expertiseId     Int?
+  expertise       Expertise?   @relation(fields: [expertiseId], references: [id])
+  allocations     Allocation[]
+  managedProjects Project[]    @relation("ProjectManager")
+}
+
+model Project {
+  id                 Int                   @id @default(autoincrement())
+  name               String
+  description        String?
+  status             String                @default("Green")
+  departmentId       Int
+  sortOrder          Int                   @default(0)
+  startDate          DateTime?
+  targetDate         DateTime?
+  actualCompletionDate DateTime?
+  mondayBoardId      String?
+  projectManagerId   Int?
+  department         Department            @relation(fields: [departmentId], references: [id])
+  projectManager     User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  allocations        Allocation[]
+  expertises         ProjectExpertise[]
+  estimate           Estimate?
+  weeklyReports      WeeklyReport[]
+}
+
+model ProjectExpertise {
+  id          Int       @id @default(autoincrement())
+  projectId   Int
+  expertiseId Int
+  project     Project   @relation(fields: [projectId], references: [id])
+  expertise   Expertise @relation(fields: [expertiseId], references: [id])
+
+  @@unique([projectId, expertiseId])
+}
+
+model Department {
+  id        Int       @id @default(autoincrement())
+  name      String
+  sortOrder Int
+  projects  Project[]
+}
+
+model Expertise {
+  id        Int                @id @default(autoincrement())
+  name      String
+  sortOrder Int                @default(0)
+  users     User[]
+  projects  ProjectExpertise[]
+}
+
+model Holiday {
+  id   Int      @id @default(autoincrement())
+  name String
+  date DateTime
+}
+
+model AllocationMonth {
+  id          Int          @id @default(autoincrement())
+  name        String
+  month       DateTime
+  isActive    Boolean
+  allocations Allocation[]
+}
+
+model Allocation {
+  id                Int             @id @default(autoincrement())
+  userId            Int
+  projectId         Int
+  allocationMonthId Int
+  percentage        Float
+  user              User            @relation(fields: [userId], references: [id])
+  project           Project         @relation(fields: [projectId], references: [id])
+  allocationMonth   AllocationMonth @relation(fields: [allocationMonthId], references: [id])
+
+  @@unique([userId, projectId, allocationMonthId])
+}
+
+model Estimate {
+  id            Int             @id @default(autoincrement())
+  projectId     Int             @unique
+  blendedRate   Float           @default(0)
+  project       Project         @relation(fields: [projectId], references: [id])
+  userStories   UserStory[]
+  groups        UserStoryGroup[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model UserStoryGroup {
+  id          Int         @id @default(autoincrement())
+  name        String
+  estimateId  Int
+  sortOrder   Int         @default(0)
+  estimate    Estimate    @relation(fields: [estimateId], references: [id])
+  userStories UserStory[]
+}
+
+model UserStory {
+  id              Int               @id @default(autoincrement())
+  name            String
+  estimateId      Int
+  groupId         Int?
+  sortOrder       Int               @default(0)
+  estimate        Estimate          @relation(fields: [estimateId], references: [id])
+  group           UserStoryGroup?   @relation(fields: [groupId], references: [id])
+  estimateItems   EstimateItem[]
+}
+
+model EstimateItem {
+  id           Int       @id @default(autoincrement())
+  userStoryId  Int
+  discipline   String
+  hours        Float     @default(0)
+  userStory    UserStory @relation(fields: [userStoryId], references: [id])
+
+  @@unique([userStoryId, discipline])
+}
+
+model WeeklyReport {
+  id             Int      @id @default(autoincrement())
+  projectId      Int
+  weekStarting   DateTime
+  accomplishments String?
+  challenges     String?
+  goals          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, weekStarting])
+}

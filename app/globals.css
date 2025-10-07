@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom tooltip styles */
+[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  background: #1f2937;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-top: 8px;
+  margin-left: -50px;
+}
+
+/* Hide default browser tooltip */
+[title] {
+  position: relative;
+}
+
+/* Allocation matrix styles */
+.allocation-input {
+  width: 60px;
+  text-align: center;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 12px;
+}
+
+.total-over { color: #dc2626; }
+.total-exact { color: #16a34a; }
+.total-under { color: #ea580c; }
+
+.expertise-header {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+.user-name {
+  background-color: #fafafa;
+  font-weight: 500;
+}
+
+.dept-header {
+  background-color: #e5e7eb;
+  font-weight: 600;
+}
+
+.project-header {
+  background-color: #f9fafb;
+  font-size: 11px;
+}
