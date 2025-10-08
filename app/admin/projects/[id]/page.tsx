@@ -44,6 +44,8 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [mondayData, setMondayData] = useState<any>(null)
   const [loadingMonday, setLoadingMonday] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
 
   useEffect(() => {
     fetchData()
@@ -90,15 +92,21 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const loadMondayData = async () => {
-    if (!project?.mondayRecordId) return
+  const loadMondayData = async (page = 1) => {
+    if (!project?.mondayBoardId && !project?.mondayRecordId) return
     
     setLoadingMonday(true)
     try {
-      const response = await fetch(`/api/monday/${project.mondayRecordId}`)
+      // Board ID takes priority over Record ID
+      const endpoint = project.mondayBoardId 
+        ? `/api/monday/board/${project.mondayBoardId}?page=${page}&limit=${itemsPerPage}`
+        : `/api/monday/${project.mondayRecordId}`
+      
+      const response = await fetch(endpoint)
       if (response.ok) {
         const data = await response.json()
         setMondayData(data)
+        setCurrentPage(page)
       } else {
         console.error('Failed to load Monday.com data')
       }
@@ -323,10 +331,13 @@ export default function ProjectDetailPage() {
             </a>
           </div>
           
-          {project.mondayRecordId && (
+          {(project.mondayBoardId || project.mondayRecordId) && (
             <div className="mt-6 pt-6 border-t">
               <div className="flex items-center gap-4 mb-4">
                 <h3 className="text-md font-semibold">Monday.com Data</h3>
+                <div className="text-xs text-gray-500">
+                  {project.mondayBoardId ? `Board: ${project.mondayBoardId}` : `Record: ${project.mondayRecordId}`}
+                </div>
                 <button
                   onClick={loadMondayData}
                   disabled={loadingMonday}
@@ -337,27 +348,85 @@ export default function ProjectDetailPage() {
               </div>
               {mondayData ? (
                 <div className="bg-gray-50 p-4 rounded border">
-                  <div className="grid grid-cols-2 gap-4">
+                  {mondayData.board ? (
+                    // Record data
                     <div>
-                      <strong>Item Name:</strong> {mondayData.name}
-                    </div>
-                    <div>
-                      <strong>State:</strong> {mondayData.state}
-                    </div>
-                    <div>
-                      <strong>Board:</strong> {mondayData.board?.name}
-                    </div>
-                  </div>
-                  {mondayData.column_values && mondayData.column_values.length > 0 && (
-                    <div className="mt-4">
-                      <strong>Columns:</strong>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        {mondayData.column_values.filter((col: any) => col.text).map((col: any) => (
-                          <div key={col.id} className="text-sm">
-                            <span className="font-medium">{col.id}:</span> {col.text}
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <strong>Item Name:</strong> {mondayData.name}
+                        </div>
+                        <div>
+                          <strong>State:</strong> {mondayData.state}
+                        </div>
+                        <div>
+                          <strong>Board:</strong> {mondayData.board?.name}
+                        </div>
                       </div>
+                      {mondayData.column_values && mondayData.column_values.length > 0 && (
+                        <div className="mt-4">
+                          <strong>Columns:</strong>
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            {mondayData.column_values.filter((col: any) => col.text).map((col: any) => (
+                              <div key={col.id} className="text-sm">
+                                <span className="font-medium">{col.id}:</span> {col.text}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    // Board data
+                    <div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <strong>Board Name:</strong> {mondayData.name}
+                        </div>
+                        <div>
+                          <strong>State:</strong> {mondayData.state}
+                        </div>
+                        <div>
+                          <strong>Description:</strong> {mondayData.description || 'None'}
+                        </div>
+                        <div>
+                          <strong>Board ID:</strong> {mondayData.id}
+                        </div>
+                      </div>
+                      
+                      {mondayData.items && mondayData.items.length > 0 && (
+                        <div>
+                          <div className="flex justify-between items-center mb-3">
+                            <strong>Board Items:</strong>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => loadMondayData(currentPage - 1)}
+                                disabled={currentPage === 1 || loadingMonday}
+                                className="px-2 py-1 text-xs bg-blue-500 text-white rounded disabled:opacity-50"
+                              >
+                                Previous
+                              </button>
+                              <span className="text-xs text-gray-600">Page {currentPage}</span>
+                              <button
+                                onClick={() => loadMondayData(currentPage + 1)}
+                                disabled={!mondayData.pagination?.hasMore || loadingMonday}
+                                className="px-2 py-1 text-xs bg-blue-500 text-white rounded disabled:opacity-50"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {mondayData.items.map((item: any) => (
+                              <div key={item.id} className="bg-white p-3 rounded border text-sm">
+                                <div className="font-medium">{item.name}</div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  ID: {item.id} | State: {item.state}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
