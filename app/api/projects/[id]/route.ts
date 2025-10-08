@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const body = await request.json()
-  const { name, description, status, sortOrder, startDate, targetDate, actualCompletionDate, mondayBoardId, projectManagerId, expertiseIds } = body
+  const { name, description, status, sortOrder, startDate, targetDate, actualCompletionDate, mondayBoardId, mondayRecordId, projectManagerId, expertiseIds } = body
   
   // Only delete and recreate expertises if expertiseIds is provided
   if (expertiseIds !== undefined) {
@@ -42,6 +42,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   if (targetDate !== undefined) updateData.targetDate = targetDate ? new Date(targetDate) : null
   if (actualCompletionDate !== undefined) updateData.actualCompletionDate = actualCompletionDate ? new Date(actualCompletionDate) : null
   if (mondayBoardId !== undefined) updateData.mondayBoardId = mondayBoardId || null
+  if (mondayRecordId !== undefined) updateData.mondayRecordId = mondayRecordId || null
   if (projectManagerId !== undefined) updateData.projectManagerId = projectManagerId || null
   
   if (expertiseIds !== undefined) {

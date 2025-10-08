@@ -13,6 +13,7 @@ interface Project {
   targetDate: string | null
   actualCompletionDate: string | null
   mondayBoardId: string | null
+  mondayRecordId: string | null
   projectManagerId: number | null
   estimate: { id: number } | null
   expertises: { expertise: { id: number; name: string } }[]
@@ -41,6 +42,8 @@ export default function ProjectDetailPage() {
   const [projectManagers, setProjectManagers] = useState<User[]>([])
   const [expertises, setExpertises] = useState<Expertise[]>([])
   const [loading, setLoading] = useState(true)
+  const [mondayData, setMondayData] = useState<any>(null)
+  const [loadingMonday, setLoadingMonday] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -85,6 +88,24 @@ export default function ProjectDetailPage() {
     } catch (error) {
       console.error('Error updating project:', error)
     }
+  }
+
+  const loadMondayData = async () => {
+    if (!project?.mondayRecordId) return
+    
+    setLoadingMonday(true)
+    try {
+      const response = await fetch(`/api/monday/${project.mondayRecordId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setMondayData(data)
+      } else {
+        console.error('Failed to load Monday.com data')
+      }
+    } catch (error) {
+      console.error('Error loading Monday.com data:', error)
+    }
+    setLoadingMonday(false)
   }
 
   const createEstimate = async () => {
@@ -204,6 +225,17 @@ export default function ProjectDetailPage() {
             </div>
             
             <div>
+              <label className="block text-sm font-medium mb-2">Monday Record ID</label>
+              <input
+                type="text"
+                value={project.mondayRecordId || ''}
+                onChange={(e) => updateProject('mondayRecordId', e.target.value || null)}
+                className="border border-gray-300 rounded px-3 py-2 w-full"
+                placeholder="Monday.com item ID (e.g., 7903264053)"
+              />
+            </div>
+            
+            <div>
               <label className="block text-sm font-medium mb-2">Expertises</label>
               <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded p-2">
                 {expertises.map((expertise) => (
@@ -290,6 +322,50 @@ export default function ProjectDetailPage() {
               View Reports
             </a>
           </div>
+          
+          {project.mondayRecordId && (
+            <div className="mt-6 pt-6 border-t">
+              <div className="flex items-center gap-4 mb-4">
+                <h3 className="text-md font-semibold">Monday.com Data</h3>
+                <button
+                  onClick={loadMondayData}
+                  disabled={loadingMonday}
+                  className="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loadingMonday ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+              {mondayData ? (
+                <div className="bg-gray-50 p-4 rounded border">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <strong>Item Name:</strong> {mondayData.name}
+                    </div>
+                    <div>
+                      <strong>State:</strong> {mondayData.state}
+                    </div>
+                    <div>
+                      <strong>Board:</strong> {mondayData.board?.name}
+                    </div>
+                  </div>
+                  {mondayData.column_values && mondayData.column_values.length > 0 && (
+                    <div className="mt-4">
+                      <strong>Columns:</strong>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {mondayData.column_values.filter((col: any) => col.text).map((col: any) => (
+                          <div key={col.id} className="text-sm">
+                            <span className="font-medium">{col.id}:</span> {col.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500">Click Refresh to load Monday.com data</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

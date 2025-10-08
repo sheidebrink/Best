@@ -28,6 +28,7 @@ model Project {
   targetDate         DateTime?
   actualCompletionDate DateTime?
   mondayBoardId      String?
+  mondayRecordId     String?
   projectManagerId   Int?
   department         Department            @relation(fields: [departmentId], references: [id])
   projectManager     User?                 @relation("ProjectManager", fields: [projectManagerId], references: [id])
