@@ -193,7 +193,7 @@ export default function Home() {
           <rect x="28" y="42" width="8" height="4" fill="white"/>
         </svg>
         <div>
-          <h1 className="text-3xl font-bold">BEST - Business Elevated Synergetic Tracking</h1>
+          <h1 className="text-3xl font-bold">BEST - Better Everyday Success Tracking</h1>
         </div>
       </div>
       

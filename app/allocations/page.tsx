@@ -64,6 +64,9 @@ export default function Allocations() {
   const [aiInsights, setAiInsights] = useState<string>('')
   const [showInsights, setShowInsights] = useState(false)
   const [loadingInsights, setLoadingInsights] = useState(false)
+  const [showStandUp, setShowStandUp] = useState(false)
+  const [currentResourceIndex, setCurrentResourceIndex] = useState(0)
+  const [standUpResponses, setStandUpResponses] = useState<Record<number, {status: string, roadblocks: string}>>({})
 
   useEffect(() => {
     loadInitialData()
@@ -357,6 +360,15 @@ export default function Allocations() {
         >
           {loadingInsights ? 'Generating...' : '🤖 AI Insights'}
         </button>
+        <button
+          onClick={() => {
+            setShowStandUp(true)
+            setCurrentResourceIndex(0)
+          }}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          📋 Conduct Stand-Up
+        </button>
       </div>
 
       {showInsights && (
@@ -375,6 +387,145 @@ export default function Allocations() {
           </div>
         </div>
       )}
+
+      {showStandUp && (() => {
+        const allUsers = expertises.flatMap(exp => exp.users)
+        const currentUser = allUsers[currentResourceIndex]
+        
+        if (!currentUser) return null
+        
+        const userAllocations = allocations.filter(a => a.userId === currentUser.id)
+        const userProjects = departments.flatMap(dept => 
+          getFilteredProjects(dept.projects).filter(project => 
+            userAllocations.some(a => a.projectId === project.id)
+          )
+        )
+        
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-8 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl border-2 border-blue-200">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="text-4xl animate-bounce">👋</div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-blue-800">Stand-Up Time!</h2>
+                    <p className="text-lg text-purple-700 font-semibold">{currentUser.name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-2xl">📊</div>
+                  <div className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+                    {currentResourceIndex + 1} of {allUsers.length}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-6 bg-white rounded-lg p-4 shadow-inner">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="text-2xl">🎯</div>
+                  <h3 className="text-lg font-semibold text-gray-800">Your Current Projects ({getUserTotal(currentUser.id)}%):</h3>
+                </div>
+                <div className="grid gap-3">
+                  {userProjects.map(project => {
+                    const allocation = getAllocationValue(currentUser.id, project.id)
+                    return (
+                      <div key={project.id} className="flex justify-between items-center bg-gradient-to-r from-blue-100 to-purple-100 p-3 rounded-lg border-l-4 border-blue-400 hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-2">
+                          <div className="text-lg">🚀</div>
+                          <span className="font-medium">{project.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-lg">⚡</div>
+                          <span className="font-bold text-blue-700">{allocation}%</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-lg p-4 shadow-inner">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="text-2xl animate-spin">✨</div>
+                    <label className="text-lg font-semibold text-green-700">Status Update:</label>
+                  </div>
+                  <textarea
+                    className="w-full border-2 border-green-200 rounded-lg px-4 py-3 h-24 focus:border-green-400 focus:ring-2 focus:ring-green-200 transition-all"
+                    value={standUpResponses[currentUser.id]?.status || ''}
+                    onChange={(e) => setStandUpResponses(prev => ({
+                      ...prev,
+                      [currentUser.id]: {
+                        ...prev[currentUser.id],
+                        status: e.target.value
+                      }
+                    }))}
+                    placeholder="🎉 What did you accomplish? What are you working on today?"
+                  />
+                </div>
+                
+                <div className="bg-white rounded-lg p-4 shadow-inner">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="text-2xl animate-pulse">🚧</div>
+                    <label className="text-lg font-semibold text-red-700">Roadblocks/Issues:</label>
+                  </div>
+                  <textarea
+                    className="w-full border-2 border-red-200 rounded-lg px-4 py-3 h-24 focus:border-red-400 focus:ring-2 focus:ring-red-200 transition-all"
+                    value={standUpResponses[currentUser.id]?.roadblocks || ''}
+                    onChange={(e) => setStandUpResponses(prev => ({
+                      ...prev,
+                      [currentUser.id]: {
+                        ...prev[currentUser.id],
+                        roadblocks: e.target.value
+                      }
+                    }))}
+                    placeholder="🤔 Any blockers or challenges we can help with?"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center mt-8 pt-6 border-t-2 border-gray-200">
+                <button
+                  onClick={() => setShowStandUp(false)}
+                  className="flex items-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors"
+                >
+                  <span>❌</span> Cancel
+                </button>
+                <div className="flex gap-3">
+                  {currentResourceIndex > 0 && (
+                    <button
+                      onClick={() => setCurrentResourceIndex(prev => prev - 1)}
+                      className="flex items-center gap-2 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors transform hover:scale-105"
+                    >
+                      <span>⬅️</span> Previous
+                    </button>
+                  )}
+                  {currentResourceIndex < allUsers.length - 1 ? (
+                    <button
+                      onClick={() => setCurrentResourceIndex(prev => prev + 1)}
+                      className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors transform hover:scale-105"
+                    >
+                      Next <span>➡️</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        console.log('Stand-up responses:', standUpResponses)
+                        setShowStandUp(false)
+                        setStandUpResponses({})
+                        setCurrentResourceIndex(0)
+                      }}
+                      className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors transform hover:scale-105 animate-pulse"
+                    >
+                      <span>🎉</span> Complete Stand-Up
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {isLoading ? (
         <p>Loading...</p>
